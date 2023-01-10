@@ -19,17 +19,21 @@ class Connection
                                  private int    $pullAckDeadline = 0,
                                  private int    $redeliveryAckDeadline = 0)
     {
-        try {
-            $key = json_decode($key, true, flags: JSON_THROW_ON_ERROR);
-        } catch (\JsonException $e) {
-            throw new InvalidArgumentException(sprintf('Error when decoding Google Pub/Sub Key: %s', $e->getMessage()), $e->getCode(), $e);
+        $options = [
+            'projectId' => $key['project_id'] ?? null,
+        ];
+
+        if (!getenv('GOOGLE_APPLICATION_CREDENTIALS')) {
+            try {
+                $key = json_decode($key, true, flags: JSON_THROW_ON_ERROR);
+            } catch (\JsonException $e) {
+                throw new InvalidArgumentException(sprintf('Error when decoding Google Pub/Sub Key: %s', $e->getMessage()), $e->getCode(), $e);
+            }
+            $options['keyFile'] = $key;
         }
 
         try {
-            $this->client = new PubSubClient([
-                'keyFile' => $key,
-                'projectId' => $key['project_id'] ?? null,
-            ]);
+            $this->client = new PubSubClient($options);
         } catch (\Throwable $e) {
             throw new InvalidArgumentException(sprintf('Error when creating Google Pub/Sub Client: %s', $e->getMessage()), $e->getCode(), $e);
         }
